@@ -1,0 +1,89 @@
+---
+title: "Submission 1"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Create a git repository for your project and push at least once prior to the first presentation with all the code you are presenting in class. See grading breakdown for final submission and bonus for details.
+
+Identify one gene, one continuous covariate, and two categorical covariates in the provided dataset. Note: Gene expression data and metadata are in two separate files and will need to be linked.
+```{r}
+#gene: ABCB1
+#continuous covariate: charlson score
+#categorical covariates: disease status & sex
+```
+
+Generate the following three plots using ggplot2 for your covariates of choice:
+  Histogram for gene expression (5 pts)    
+  Scatterplot for gene expression and continuous covariate (5 pts)
+  Boxplot of gene expression separated by both categorical covariates (5 pts)
+  
+```{r}
+#Histogram
+library(tidyverse)
+
+genes <- read_csv("D:\\Desktop\\Dartmouth\\Fundations of Data Science 103\\Submission 1\\QBS103_GSE157103_genes.csv")
+series <- read_csv("D:\\Desktop\\Dartmouth\\Fundations of Data Science 103\\Submission 1\\QBS103_GSE157103_series_matrix-1.csv")
+
+genes_long <- genes %>%
+  pivot_longer(
+    cols = -`...1`,
+    names_to = "participant_id",
+    values_to = "expression"  
+  ) %>%
+  rename(gene = `...1`)
+
+gene_of_interest <- "ABCB1"
+
+gene_expr <- genes_long %>%
+  filter(gene == gene_of_interest) %>%
+  select(participant_id, expression)
+
+data_merged <- series %>%
+  left_join(gene_expr, by = "participant_id")
+
+data_merged <- data_merged %>%
+  mutate(expression = as.numeric(expression))
+
+library(ggplot2)
+
+ggplot(data_merged, aes(x = expression)) +
+  geom_histogram(binwidth = 0.1, fill = "lightblue", color = "black") +
+  labs(
+    title = "Histogram of ABCB1 Expression",
+    x = "ABCB1 Expression",
+    y = "Count"
+  ) 
+
+```
+
+```{r}
+#Scatterplot
+ggplot(data_merged, aes(x = charlson_score, y = expression)) +
+  geom_point(color = "red") +
+  labs(
+    title = "ABCB1 Expression vs. Charlson Score",
+    x = "Charlson Score",
+    y = "ABCB1 Expression"
+  ) 
+
+```
+```{r}
+#Boxplot
+ggplot(data_merged, aes(x = disease_status, y = expression, fill = sex)) +
+  geom_boxplot() +
+  labs(
+    title = "ABCB1 Expression by Disease Status and Sex",
+    x = "Disease Status",
+    y = "ABCB1 Expression",
+    fill = "Sex"
+  ) 
+
+```
+
+
+
+Present your scatterplot in class. Be prepared to explain the gene and covariate you chose and comment on the distribution as if you were presenting your research findings. No slides are required, just bring your plot. In class, be prepared to provide constructive feedback for your classmates (5 pts)
+
+Submit your clearly commented code and generated plots as a knitted R markdown file.
