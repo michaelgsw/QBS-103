@@ -1,0 +1,177 @@
+---
+title: "Submission 2"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+#gene: ABCB1
+#continuous covariate: charlson score
+#categorical covariates: disease status & sex
+```
+
+```{r}
+#Histogram
+library(tidyverse)
+
+genes <- read_csv("~/Fundations of Data Science 103/Submission 1/QBS103_GSE157103_genes.csv")
+series <- read_csv("~/Fundations of Data Science 103/Submission 1/QBS103_GSE157103_series_matrix-1.csv")
+
+genes_long <- genes %>%
+  pivot_longer(
+    cols = -`...1`,
+    names_to = "participant_id",
+    values_to = "expression"  
+  ) %>%
+  rename(gene = `...1`)
+
+gene_of_interest <- "ABCB1"
+
+gene_expr <- genes_long %>%
+  filter(gene == gene_of_interest) %>%
+  select(participant_id, expression)
+
+data_merged <- series %>%
+  left_join(gene_expr, by = "participant_id")
+
+data_merged <- data_merged %>%
+  mutate(expression = as.numeric(expression))
+
+library(ggplot2)
+
+ggplot(data_merged, aes(x = expression)) +
+  geom_histogram(binwidth = 0.1, fill = "lightblue", color = "black") +
+  labs(
+    title = "Histogram of ABCB1 Expression",
+    x = "ABCB1 Expression",
+    y = "Count"
+  ) 
+
+```
+
+```{r}
+#Scatterplot
+ggplot(data_merged, aes(x = charlson_score, y = expression)) +
+  geom_point(color = "red") +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(
+    title = "ABCB1 Expression vs. Charlson Score",
+    x = "Charlson Score",
+    y = "ABCB1 Expression"
+  ) 
+
+```
+```{r}
+#Boxplot
+ggplot(data_merged, aes(x = disease_status, y = expression, fill = sex)) +
+  geom_boxplot() +
+  labs(
+    title = "ABCB1 Expression by Disease Status and Sex",
+    x = "Disease Status",
+    y = "ABCB1 Expression",
+    fill = "Sex"
+  ) 
+
+```
+  
+  Build a function to create the plots you made for Presentation 1, incorporating any feedback you received on your submission. Your functions should take the following input: (1) the name of the data frame, (2) a list of 1 or more gene names, (3) 1 continuous covariate, and (4) two categorical covariates (10 pts)
+  
+```{r}
+gene_plots <- function(genes_long, series, gene_list, cont_var, cate_var1, cate_var2){
+  library(tidyverse)
+  library(ggplot2)
+  
+  plot_list <- list()
+  
+  for (gene_of_interest in gene_list) {
+    gene_expr <- genes_long %>%
+    filter(gene == gene_of_interest) %>%
+    select(participant_id, expression)
+    
+    data_merged <- series %>%
+      left_join(gene_expr, by = "participant_id")
+  
+    data_merged <- data_merged %>%
+      mutate(expression = as.numeric(expression)) %>%
+      mutate(charlson_score = as.numeric(charlson_score))
+  
+    p_hist <- ggplot(data_merged, aes(x = expression)) +
+      geom_histogram(binwidth = 0.1, fill = "lightblue", color = "black") +
+      labs(
+        title = paste("Histogram of", gene_of_interest, "Expression"),
+        x = paste(gene_of_interest, "Expression"),
+        y = "Count"
+      )
+  
+    p_scatter <- ggplot(data_merged, aes(x = .data[[cont_var]], y = expression)) +
+      geom_point(color = "red") +
+      geom_smooth(method = "lm", se = FALSE, color = "blue") +
+      labs(
+        title = paste(gene_of_interest, "Expression vs.", cont_var),
+        x = cont_var,
+        y = paste(gene_of_interest, "Expression")
+      )
+  
+    p_box <- ggplot(data_merged, aes(x = .data[[cate_var1]], y = expression, fill = .data[[cate_var2]])) +
+      geom_boxplot() +
+      labs(
+        title = paste(gene_of_interest, "Expression by", cate_var1, "and", cate_var2),
+        x = cate_var1,
+        y = paste(gene_of_interest, "Expression"),
+        fill = cate_var2
+       )
+  
+    plot_list[[gene_of_interest]] <- list(
+      histogram = p_hist,
+      scatterplot = p_scatter,
+      boxplot = p_box
+    )
+  }
+  return(plot_list)
+}
+```
+
+```{r}
+plots <- gene_plots(
+  genes_long = genes_long,
+  series = series,
+  gene_list = "ABCB1",
+  cont_var = "charlson_score",
+  cate_var1 = "disease_status",
+  cate_var2 = "sex"
+)
+
+plots[["ABCB1"]][["histogram"]]
+plots[["ABCB1"]][["scatterplot"]]
+plots[["ABCB1"]][["boxplot"]]
+
+```
+  
+Select 2 additional genes (for a total of 3 genes) to look at and implement a loop to generate your figures using the function you created (10 pts)
+
+```{r}
+gene_list <- c("ABCB1", "AAK1", "ABCD4")
+
+plots <- gene_plots(
+  genes_long = genes_long,
+  series = series,
+  gene_list = gene_list,
+  cont_var = "charlson_score",
+  cate_var1 = "disease_status",
+  cate_var2 = "sex"
+)
+
+plots[["ABCB1"]][["histogram"]]
+plots[["ABCB1"]][["scatterplot"]]
+plots[["ABCB1"]][["boxplot"]]
+
+plots[["AAK1"]][["histogram"]]
+plots[["AAK1"]][["scatterplot"]]
+plots[["AAK1"]][["boxplot"]]
+
+plots[["ABCD4"]][["histogram"]]
+plots[["ABCD4"]][["scatterplot"]]
+plots[["ABCD4"]][["boxplot"]]
+```
+
