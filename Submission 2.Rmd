@@ -36,7 +36,36 @@ data_merged <- series %>%
   left_join(gene_expr, by = "participant_id")
 
 data_merged <- data_merged %>%
-  mutate(expression = as.numeric(expression))
+  rename(ventilator_free_days = `ventilator-free_days`) %>%
+  mutate(
+    expression        = as.numeric(expression),
+    charlson_score    = as.numeric(charlson_score),
+    age               = as.numeric(age),
+    ventilator_free_days = as.numeric(ventilator_free_days),
+
+    disease_status = factor(
+      disease_status,
+      levels = c("disease state: COVID-19", "disease state: non-COVID-19"),
+      labels = c("COVID-19", "Non-COVID-19")
+    ),
+    sex = factor(
+      tolower(sex),
+      levels = c("male","female","unknown"),
+      labels = c("Male","Female","Unknown")
+    ),
+    icu_status = factor(
+      tolower(icu_status),
+      levels = c("yes","no"),
+      labels = c("Yes","No")
+    )
+  )
+
+fab_theme <- theme_minimal(base_size = 11) +
+  theme(
+    axis.title = element_text(face = "bold"),
+    plot.title = element_text(face = "bold"),
+    plot.caption = element_text(size = 9, colour = "grey35")
+  )
 
 library(ggplot2)
 
@@ -46,7 +75,8 @@ ggplot(data_merged, aes(x = expression)) +
     title = "Histogram of ABCB1 Expression",
     x = "ABCB1 Expression",
     y = "Count"
-  ) 
+  ) +
+  fab_theme
 
 ```
 
@@ -59,7 +89,8 @@ ggplot(data_merged, aes(x = charlson_score, y = expression)) +
     title = "ABCB1 Expression vs. Charlson Score",
     x = "Charlson Score",
     y = "ABCB1 Expression"
-  ) 
+  ) +
+  fab_theme
 
 ```
 ```{r}
@@ -71,7 +102,8 @@ ggplot(data_merged, aes(x = disease_status, y = expression, fill = sex)) +
     x = "Disease Status",
     y = "ABCB1 Expression",
     fill = "Sex"
-  ) 
+  ) +
+  fab_theme
 
 ```
   
@@ -93,34 +125,65 @@ gene_plots <- function(genes_long, series, gene_list, cont_var, cate_var1, cate_
       left_join(gene_expr, by = "participant_id")
   
     data_merged <- data_merged %>%
-      mutate(expression = as.numeric(expression)) %>%
-      mutate(charlson_score = as.numeric(charlson_score))
+      rename(ventilator_free_days = `ventilator-free_days`) %>%
+      mutate(
+        expression = as.numeric(expression),
+        charlson_score = as.numeric(charlson_score),
+        age = as.numeric(age),
+        ventilator_free_days = as.numeric(ventilator_free_days),
+
+        disease_status = factor(
+          disease_status,
+          levels = c("disease state: COVID-19", "disease state: non-COVID-19"),
+          labels = c("COVID-19", "Non-COVID-19")
+        ),
+        sex = factor(
+          tolower(sex),
+          levels = c("male","female","unknown"),
+         labels = c("Male","Female","Unknown")
+       ),
+       icu_status = factor(
+         tolower(icu_status),
+         levels = c("yes","no"),
+          labels = c("Yes","No")
+       )
+     )
   
+  fab_theme <- theme_minimal(base_size = 11) +
+  theme(
+    axis.title = element_text(face = "bold"),
+    plot.title = element_text(face = "bold"),
+    plot.caption = element_text(size = 9, colour = "grey35")
+  )
+
     p_hist <- ggplot(data_merged, aes(x = expression)) +
       geom_histogram(binwidth = 0.1, fill = "lightblue", color = "black") +
       labs(
         title = paste("Histogram of", gene_of_interest, "Expression"),
         x = paste(gene_of_interest, "Expression"),
         y = "Count"
-      )
+      ) +
+      fab_theme
   
     p_scatter <- ggplot(data_merged, aes(x = .data[[cont_var]], y = expression)) +
       geom_point(color = "red") +
       geom_smooth(method = "lm", se = FALSE, color = "blue") +
       labs(
         title = paste(gene_of_interest, "Expression vs.", cont_var),
-        x = cont_var,
+        x = str_to_title(cont_var),
         y = paste(gene_of_interest, "Expression")
-      )
+      ) +
+      fab_theme
   
     p_box <- ggplot(data_merged, aes(x = .data[[cate_var1]], y = expression, fill = .data[[cate_var2]])) +
       geom_boxplot() +
       labs(
         title = paste(gene_of_interest, "Expression by", cate_var1, "and", cate_var2),
-        x = cate_var1,
+        x = str_to_title(cate_var1),
         y = paste(gene_of_interest, "Expression"),
         fill = cate_var2
-       )
+       ) +
+       fab_theme
   
     plot_list[[gene_of_interest]] <- list(
       histogram = p_hist,
