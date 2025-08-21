@@ -1,0 +1,451 @@
+---
+title: "Final Project"
+output: pdf_document
+date: "2025-08-21"
+header-includes:
+  - \usepackage{float}
+  - \usepackage{booktabs}
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#gene: ABCB1
+#continuous covariate: charlson score
+#categorical covariates: disease status & sex
+```
+
+```{r}
+#Histogram
+library(tidyverse)
+
+genes <- read_csv("~/Fundations of Data Science 103/Submission 1/QBS103_GSE157103_genes.csv")
+series <- read_csv("~/Fundations of Data Science 103/Submission 1/QBS103_GSE157103_series_matrix-1.csv")
+
+genes_long <- genes %>%
+  pivot_longer(
+    cols = -`...1`,
+    names_to = "participant_id",
+    values_to = "expression"  
+  ) %>%
+  rename(gene = `...1`)
+
+gene_of_interest <- "ABCB1"
+
+gene_expr <- genes_long %>%
+  filter(gene == gene_of_interest) %>%
+  select(participant_id, expression)
+
+data_merged <- series %>%
+  left_join(gene_expr, by = "participant_id")
+
+data_merged <- data_merged %>%
+  rename(ventilator_free_days = `ventilator-free_days`) %>%
+  mutate(
+    expression        = as.numeric(expression),
+    charlson_score    = as.numeric(charlson_score),
+    age               = as.numeric(age),
+    ventilator_free_days = as.numeric(ventilator_free_days),
+
+    disease_status = factor(
+      disease_status,
+      levels = c("disease state: COVID-19", "disease state: non-COVID-19"),
+      labels = c("COVID-19", "Non-COVID-19")
+    ),
+    sex = factor(
+      tolower(sex),
+      levels = c("male","female","unknown"),
+      labels = c("Male","Female","Unknown")
+    ),
+    icu_status = factor(
+      tolower(icu_status),
+      levels = c("yes","no"),
+      labels = c("Yes","No")
+    )
+  )
+
+fab_theme <- theme_minimal(base_size = 11) +
+  theme(
+    axis.title = element_text(face = "bold"),
+    plot.title = element_text(face = "bold"),
+    plot.caption = element_text(size = 9, colour = "grey35")
+  )
+
+library(ggplot2)
+
+ggplot(data_merged, aes(x = expression)) +
+  geom_histogram(binwidth = 0.1, fill = "lightblue", color = "black") +
+  labs(
+    title = "Histogram of ABCB1 Expression",
+    x = "ABCB1 Expression",
+    y = "Count"
+  ) +
+  fab_theme
+
+ggsave("Histogram of ABCB1 Expression.pdf", plot = ggplot(data_merged, aes(x = expression)) +
+  geom_histogram(binwidth = 0.1, fill = "lightblue", color = "black") +
+  labs(
+    title = "Histogram of ABCB1 Expression",
+    x = "ABCB1 Expression",
+    y = "Count"
+  ) +
+  fab_theme, width = 6, height = 4, units = "in", dpi = 300)
+```
+
+```{r}
+#Scatterplot
+ggplot(data_merged, aes(x = charlson_score, y = expression)) +
+  geom_point(color = "red") +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(
+    title = "ABCB1 Expression vs. Charlson Score",
+    x = "Charlson Score",
+    y = "ABCB1 Expression"
+  ) +
+  fab_theme
+
+ggsave("Scatterplot of ABCB1 Expression.pdf", plot = ggplot(data_merged, aes(x = charlson_score, y = expression)) +
+  geom_point(color = "red") +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(
+    title = "ABCB1 Expression vs. Charlson Score",
+    x = "Charlson Score",
+    y = "ABCB1 Expression"
+  ) +
+  fab_theme, width = 6, height = 4, units = "in", dpi = 300)
+```
+```{r}
+#Boxplot
+ggplot(data_merged, aes(x = disease_status, y = expression, fill = sex)) +
+  geom_boxplot() +
+  labs(
+    title = "ABCB1 Expression by Disease Status and Sex",
+    x = "Disease Status",
+    y = "ABCB1 Expression",
+    fill = "Sex"
+  ) +
+  fab_theme
+
+ggsave("Boxplot of ABCB1 Expression.pdf", plot = ggplot(data_merged, aes(x = disease_status, y = expression, fill = sex)) +
+  geom_boxplot() +
+  labs(
+    title = "ABCB1 Expression by Disease Status and Sex",
+    x = "Disease Status",
+    y = "ABCB1 Expression",
+    fill = "Sex"
+  ) +
+  fab_theme, width = 6, height = 4, units = "in", dpi = 300)
+```
+  
+  Build a function to create the plots you made for Presentation 1, incorporating any feedback you received on your submission. Your functions should take the following input: (1) the name of the data frame, (2) a list of 1 or more gene names, (3) 1 continuous covariate, and (4) two categorical covariates (10 pts)
+  
+```{r}
+gene_plots <- function(genes_long, series, gene_list, cont_var, cate_var1, cate_var2){
+  library(tidyverse)
+  library(ggplot2)
+  
+  plot_list <- list()
+  
+  for (gene_of_interest in gene_list) {
+    gene_expr <- genes_long %>%
+    filter(gene == gene_of_interest) %>%
+    select(participant_id, expression)
+    
+    data_merged <- series %>%
+      left_join(gene_expr, by = "participant_id")
+  
+    data_merged <- data_merged %>%
+      rename(ventilator_free_days = `ventilator-free_days`) %>%
+      mutate(
+        expression = as.numeric(expression),
+        charlson_score = as.numeric(charlson_score),
+        age = as.numeric(age),
+        ventilator_free_days = as.numeric(ventilator_free_days),
+
+        disease_status = factor(
+          disease_status,
+          levels = c("disease state: COVID-19", "disease state: non-COVID-19"),
+          labels = c("COVID-19", "Non-COVID-19")
+        ),
+        sex = factor(
+          tolower(sex),
+          levels = c("male","female","unknown"),
+         labels = c("Male","Female","Unknown")
+       ),
+       icu_status = factor(
+         tolower(icu_status),
+         levels = c("yes","no"),
+          labels = c("Yes","No")
+       )
+     )
+  
+  fab_theme <- theme_minimal(base_size = 11) +
+  theme(
+    axis.title = element_text(face = "bold"),
+    plot.title = element_text(face = "bold"),
+    plot.caption = element_text(size = 9, colour = "grey35")
+  )
+
+    p_hist <- ggplot(data_merged, aes(x = expression)) +
+      geom_histogram(binwidth = 0.1, fill = "lightblue", color = "black") +
+      labs(
+        title = paste("Histogram of", gene_of_interest, "Expression"),
+        x = paste(gene_of_interest, "Expression"),
+        y = "Count"
+      ) +
+      fab_theme
+  
+    p_scatter <- ggplot(data_merged, aes(x = .data[[cont_var]], y = expression)) +
+      geom_point(color = "red") +
+      geom_smooth(method = "lm", se = FALSE, color = "blue") +
+      labs(
+        title = paste(gene_of_interest, "Expression vs.", cont_var),
+        x = str_to_title(cont_var),
+        y = paste(gene_of_interest, "Expression")
+      ) +
+      fab_theme
+  
+    p_box <- ggplot(data_merged, aes(x = .data[[cate_var1]], y = expression, fill = .data[[cate_var2]])) +
+      geom_boxplot() +
+      labs(
+        title = paste(gene_of_interest, "Expression by", cate_var1, "and", cate_var2),
+        x = str_to_title(cate_var1),
+        y = paste(gene_of_interest, "Expression"),
+        fill = cate_var2
+       ) +
+       fab_theme
+  
+    plot_list[[gene_of_interest]] <- list(
+      histogram = p_hist,
+      scatterplot = p_scatter,
+      boxplot = p_box
+    )
+  }
+  return(plot_list)
+}
+```
+
+```{r}
+plots <- gene_plots(
+  genes_long = genes_long,
+  series = series,
+  gene_list = "ABCB1",
+  cont_var = "charlson_score",
+  cate_var1 = "disease_status",
+  cate_var2 = "sex"
+)
+
+plots[["ABCB1"]][["histogram"]]
+plots[["ABCB1"]][["scatterplot"]]
+plots[["ABCB1"]][["boxplot"]]
+
+```
+  
+Select 2 additional genes (for a total of 3 genes) to look at and implement a loop to generate your figures using the function you created (10 pts)
+
+```{r}
+gene_list <- c("ABCB1", "AAK1", "ABCD4")
+
+plots <- gene_plots(
+  genes_long = genes_long,
+  series = series,
+  gene_list = gene_list,
+  cont_var = "charlson_score",
+  cate_var1 = "disease_status",
+  cate_var2 = "sex"
+)
+
+plots[["ABCB1"]][["histogram"]]
+plots[["ABCB1"]][["scatterplot"]]
+plots[["ABCB1"]][["boxplot"]]
+
+plots[["AAK1"]][["histogram"]]
+plots[["AAK1"]][["scatterplot"]]
+plots[["AAK1"]][["boxplot"]]
+
+plots[["ABCD4"]][["histogram"]]
+plots[["ABCD4"]][["scatterplot"]]
+plots[["ABCD4"]][["boxplot"]]
+```
+
+```{r}
+series$age <- as.numeric(series$age)
+
+tapply(series$age, series$disease_status, mean, na.rm = TRUE)
+tapply(series$age, series$disease_status, sd, na.rm = TRUE)
+tapply(series$age, series$disease_status, median, na.rm = TRUE)
+tapply(series$age, series$disease_status, quantile,
+       probs = c(0.25, 0.75), na.rm = TRUE)
+
+```
+```{r}
+series$charlson_score <- as.numeric(series$charlson_score)
+
+tapply(series$charlson_score, series$disease_status, mean, na.rm = TRUE)
+tapply(series$charlson_score, series$disease_status, sd, na.rm = TRUE)
+tapply(series$charlson_score, series$disease_status, median, na.rm = TRUE)
+tapply(series$charlson_score, series$disease_status,
+       quantile, probs = c(0.25, 0.75), na.rm = TRUE)
+
+```
+```{r}
+series$`ventilator-free_days` <- as.numeric(series$`ventilator-free_days`)
+
+tapply(series$`ventilator-free_days`, series$disease_status, mean, na.rm = TRUE)
+tapply(series$`ventilator-free_days`, series$disease_status, sd, na.rm = TRUE)
+tapply(series$`ventilator-free_days`, series$disease_status, median, na.rm = TRUE)
+tapply(series$`ventilator-free_days`, series$disease_status,
+       quantile, probs = c(0.25, 0.75), na.rm = TRUE)
+
+```
+```{r}
+mean(series$age, na.rm = TRUE)
+sd(series$age, na.rm = TRUE)
+median(series$age, na.rm = TRUE)
+quantile(series$age, probs = c(0.25, 0.75), na.rm = TRUE)
+
+mean(series$charlson_score, na.rm = TRUE)
+sd(series$charlson_score, na.rm = TRUE)
+median(series$charlson_score, na.rm = TRUE)
+quantile(series$charlson_score, probs = c(0.25, 0.75), na.rm = TRUE)
+
+mean(series$`ventilator-free_days`, na.rm = TRUE)
+sd(series$`ventilator-free_days`, na.rm = TRUE)
+median(series$`ventilator-free_days`, na.rm = TRUE)
+quantile(series$`ventilator-free_days`, probs = c(0.25, 0.75), na.rm = TRUE)
+```
+```{r}
+sex_prop <- table(series$sex, series$disease_status)
+sex_prop
+round(prop.table(sex_prop, margin = 2) * 100, 1)
+
+icu_prop <- table(series$icu_status, series$disease_status)
+icu_prop
+round(prop.table(icu_prop, margin = 2) * 100, 1)
+```
+```{=latex}
+\begin{table}[H]
+\centering
+\caption{Summary statistics of covariates stratified by \texttt{disease\_status}.}
+\label{tab:summary}
+\begin{tabular}{lccc}
+\toprule
+ & \textbf{COVID-19} & \textbf{non-COVID-19} & \textbf{Total} \\
+\midrule
+\multicolumn{4}{l}{\textbf{Continuous variables[mean(sd)/median(IQR)]}} \\
+Age & 60.8 (16.1) / 62 [50.3, 73.8] & 62.8 (15.6) / 65 [53, 75] & 61.2 (16.0) / 62 [50.5, 74.0] \\
+Charlson score & 3.28 (2.48) / 3 [1, 5] & 4.35 (2.42) / 4 [2.25, 6] & 3.50 (2.49) / 3 [2, 5] \\
+Ventilator-free days & 19.81 (11.56) / 28 [10.5, 28] & 22.42 (10.06) / 28 [24, 28] & 20.35 (11.28) / 28 [12.8, 28] \\
+\addlinespace
+\multicolumn{4}{l}{\textbf{Categorical variables}} \\
+Sex &  &  &  \\
+\hspace{1em}Female  & 38 (38.0\%) & 13 (50.0\%) & 51 (40.5\%) \\
+\hspace{1em}Male    & 62 (62.0\%) & 12 (46.2\%) & 74 (58.7\%) \\
+\hspace{1em}Unknown & 0 (0.0\%)   & 1 (3.8\%)   & 1 (0.8\%) \\
+ICU status &  &  &  \\
+\hspace{1em}No  & 50 (50.0\%) & 10 (38.5\%) & 60 (47.6\%) \\
+\hspace{1em}Yes & 50 (50.0\%) & 16 (61.5\%) & 66 (52.4\%) \\
+\bottomrule
+\end{tabular}
+\end{table}
+```
+Generate a heatmap (5 pts)
+  Heatmap should include at least 10 genes
+  Include tracking bars for the 2 categorical covariates in your boxplot
+  Heatmaps should include clustered rows and columns
+```{r}
+library(dplyr)
+library(tidyr)
+library(pheatmap)
+
+cate1 <- "disease_status"
+cate2 <- "sex"
+
+matri <- genes_long %>%
+  select(participant_id, gene, expression) %>%
+  mutate(expression = as.numeric(expression)) %>%
+  distinct() %>%
+  pivot_wider(names_from = participant_id, values_from = expression) %>%
+  tibble::column_to_rownames("gene") %>%
+  as.matrix()
+
+selection <- names(sort(apply(matri, 1, var, na.rm = TRUE), decreasing = TRUE))[1:10]
+matri10 <- matri[selection, , drop = FALSE]
+
+annotation <- series %>%
+  select(participant_id, disease_status, sex) %>%
+  filter(participant_id %in% colnames(matri10)) %>%
+  distinct()
+annotation$disease_status <- factor(annotation$disease_status,
+                                    levels = c("disease state: COVID-19", "disease state: non-COVID-19"),
+                                    labels = c("COVID-19", "Non-COVID-19"))
+annotation$sex <- factor(annotation$sex,
+                         levels = c("male", "female", "unknown"),
+                         labels = c("Male", "Female", "Unknown"))
+annotation <- as.data.frame(annotation)
+rownames(annotation) <- annotation$participant_id
+annotation$participant_id <- NULL
+annotation <- annotation[colnames(matri10), , drop = FALSE]
+
+matri10 <- apply(matri10, 2, as.numeric)
+rownames(matri10) <- selection
+
+pheatmap(
+  matri10,
+  scale = "row",
+  annotation_col = annotation,
+  clustering_distance_rows = "euclidean",
+  clustering_distance_cols = "euclidean",
+  clustering_method = "complete",
+  show_rownames = TRUE,
+  show_colnames = FALSE,
+  main = "Heatmap of Top 10 Variable Genes"
+)
+
+pheatmap(
+  matri10,
+  scale = "row",
+  annotation_col = annotation,
+  clustering_distance_rows = "euclidean",
+  clustering_distance_cols = "euclidean",
+  clustering_method = "complete",
+  show_rownames = TRUE,
+  show_colnames = FALSE,
+  main = "Heatmap of Top 10 Variable Genes",
+  filename = "Heatmap of Top 10 Variable Genes.pdf",
+  width = 7, height = 6
+)
+
+```
+
+```{r}
+sum_df <- data_merged %>%
+  group_by(disease_status, charlson_score) %>%
+  summarise(
+    mean_expr = mean(expression, na.rm = TRUE),
+    se = sd(expression, na.rm = TRUE) / sqrt(n()),
+  ) %>%
+  mutate(
+    ymin = mean_expr - se,
+    ymax = mean_expr + se
+  )
+
+ggplot(sum_df, aes(x = charlson_score, y = mean_expr,
+                   color = disease_status, fill = disease_status)) +
+  geom_ribbon(aes(ymin = ymin, ymax = ymax), alpha = 0.2, color = NA) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "ABCB1 Expression vs Charlson Score",
+    x = "Charlson score",
+    y = "Mean ABCB1 expression",
+    color = "Disease Status",
+    fill  = "Disease Status"
+  ) +
+  fab_theme
+
+```
+
